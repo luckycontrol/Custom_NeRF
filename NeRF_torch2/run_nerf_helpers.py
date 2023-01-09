@@ -147,7 +147,20 @@ def get_rays(H, W, K, c2w):
 
 def ndc_rays(H, W, focal, near, rays_o, rays_d):
     t = -(near + rays_o[..., 2]) / rays_d[..., 2]
+    rays_o = rays_o + t[..., None] * rays_d
 
+    o0 = -1. / (W / (2. * focal)) * rays_o[..., 0] / rays_o[..., 2]
+    o1 = -1. / (H / (2. * focal)) * rays_o[..., 1] / rays_o[..., 2]
+    o2 = 1. + 2. * near / rays_o[..., 2]
+
+    d0 = -1. / (W / (2. * focal)) * (rays_d[..., 0] / rays_d[..., 2] - rays_o[..., 0] / rays_o[..., 2])
+    d1 = -1. / (H / (2. * focal)) * (rays_d[..., 1] / rays_d[..., 2] - rays_o[..., 1] / rays_o[..., 2])
+    d2 = -2. * near / rays_o[..., 2]
+    
+    rays_o = torch.stack([o0, o1, o2], dim=-1)
+    rays_d = torch.stack([d0, d1, d2], dim=-1)
+
+    return rays_o, rays_d
 
 
 if __name__ == '__main__':
@@ -173,5 +186,8 @@ if __name__ == '__main__':
     j.t()
 
     camera_dirs = torch.stack([(i - K[0][2]) / K[0][0], -(j - K[1][2]) / K[1][1], -torch.ones_like(i)], dim=-1)
-    rays_d = torch.sum(camera_dirs[..., np.newaxis, :] * pose[:3, :3], dim=-1)
-    rays_o = pose[:3, -1].expand(rays_d.shape)
+    print(camera_dirs)
+    # rays_d = torch.sum(camera_dirs[..., np.newaxis, :] * pose[:3, :3], dim=-1)
+    # rays_o = pose[:3, -1].expand(rays_d.shape)
+    #
+    # print(rays_o)
